@@ -1,0 +1,45 @@
+# GitHub Actions CI：每次 push 或 PR 自动跑接口测试
+name: API Test Pipeline
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  # 每天早上9点定时跑一次
+  schedule:
+    - cron: '0 1 * * *'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 拉代码
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 装 Python
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # 装依赖
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # 跑测试，生成报告
+      - name: Run tests
+        run: |
+          pytest testcases/ -v --tb=short --html=reports/report.html --self-contained-html
+
+      # 上传测试报告作为 artifact
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report
+          path: reports/report.html
